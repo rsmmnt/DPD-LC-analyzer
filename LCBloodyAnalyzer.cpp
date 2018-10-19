@@ -5,13 +5,8 @@
 
 #ifdef _WIN32
 #include <conio.h>
-//for now only for 1 chain(!)
-//CUDA
+
 #endif
-bool debug = true;
-int** ContactMatrix;
-double** DistanceMatrix;
-int TypeToLook = -1;
 double **TensorOfInertia;
 double ** TensorDiag;
 double *eigenvalues;
@@ -20,38 +15,25 @@ double **eigenvectors;
 int* Types;
 
 double TensorParameters[3];
-double DistanceMatrixNormer = 0;
 double CONTACT_CUT = 2.5;
-void InitStats(int Len, int StpLen, int minlen, int maxlen,int);
-void CalculateStats();
-void outputStats(FILE *f);
+
 double* rgs; //starts with 2
 double* rs;
 double* conts;
 double* rgwithout2s;
 
-const int NContBins = 100;
-double NContRadius[NContBins];
-double NContStep = 0.1;
 
-int rgstep;
-int rgmax;
-int rglen;
-int rgmin;
-int rgcounter;
-int rgstart = 0;
+
 int N;
 int Nrot;
 
-struct Chain;
-struct Mon;
 struct Vector;
 
 
 
 
 
-//SOMESHIT
+//old matrix eigenvals/eigenvecs code
 
 
 
@@ -183,34 +165,7 @@ void eigsort_in_decending_order(double d[], double **v, int n)
 
 
 
-//end SOMEOLDSHIT
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//end old code
 
 
 
@@ -456,491 +411,16 @@ return tmp;
 
 Vector* crd;
 
-double GyrationRadius(int Start, int End)
-{
-    double Rg = 0;
-    Vector CMass,Vg;
-    for(int j = 0; j < 3; j++)
-    {
-        CMass.x[j] = 0;//υσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσισυισυισυισυισυισυισυισυυσιυσυυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσυισυυσιυσιυσιυσι
-    }
-    for(int i = Start; i <= End; i ++)
-    {
-        for(int j = 0; j < 3; j++)
-        {
-        CMass.x[j] += crd[i].x[j];
-        }
-    }
-    for(int j = 0; j < 3; j++)
-    {
-        CMass.x[j] = CMass.x[j]/(double)(End-Start+1);
-    }
-
-
-    for(int i = Start; i <= End; i ++)
-    {
-        Rg = Rg + (CMass - crd[i]).sqlen();
-    }
-
-    return Rg/(double)(End-Start+1);
-
-}
-
-void GyrationTensor(int Start, int End)
-{
-    double Rg = 0;
-    Vector CMass,Vg;
-    for(int j = 0; j < 3; j++)
-    {
-        CMass.x[j] = 0;//υσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσισυισυισυισυισυισυισυισυυσιυσυυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσιυσυισυυσιυσιυσιυσι
-    }
-    for(int i = Start; i <= End; i ++)
-    {
-        for(int j = 0; j < 3; j++)
-        {
-        CMass.x[j] += crd[i].x[j];
-        }
-    }
-    for(int j = 0; j < 3; j++)
-    {
-        CMass.x[j] = CMass.x[j]/(double)(End-Start+1);
-    }
-
-	for(int k = 0 ; k < 3; k ++)
-		{
-			for(int l = 0; l < 3; l++)
-			{
-       TensorOfInertia[k+1][l+1] = 0;
-		for(int i = Start; i <= End; i++ )
-		{
-        
-			
-			
-		
-		TensorOfInertia[k+1][l+1] +=  -(crd[i].x[k] - CMass.x[k])*(crd[i].x[l] - CMass.x[l]);
-		//printf("%lf xy ij\n", crd[i].x[l] - CMass.x[l]);
-		if(k == l)
-		{
-			TensorOfInertia[k+1][l+1] += (crd[i]-CMass).sqlen();
-		//	printf("%lf sqlen\n",(crd[i]-CMass).sqlen());
-		}
-    }
-	//printf("%lf tensor component %i %i,\n",TensorOfInertia[k+1][l+1],k,l);
-	}
-		}
-    
-
-}
-
-
-
-
-
-
-
-void InitStats(int Len, int StpLen, int minlen, int maxlen,int StartMon = 0)
-{
-////chain stats
-rglen = Len;
-rgcounter = 0;
-rgmin = minlen;
-rgmax = maxlen;
-rgstep = StpLen;
-rgstart = StartMon;
-for(int i = 0; i < rglen; i ++)
-{
-    rgs[i] = 0;
-    rs[i] = 0;
-    conts[i] = 0;
-	rgwithout2s[i] = 0;
-	}
-
-
-
-
-}
-
-
-void CalculateStats()
-{
-
-    for(int i = rgmin; i < rgmax; i+=rgstep)
-    {
-        double meanrs = 0;
-        double meanrg = 0;
-        int cnt = 0;
-		double meanrg2w = 0;
-        int lag = 1;
-        int cnts = 0;
-        for(int j = rgstart; j < rglen - i; j+=lag)
-        {
-          //  printf("alive at step %i %i\n",i,j);
-            if( (Types[j] == Types[j+i] && Types[j] == TypeToLook) || TypeToLook == -1)
-			{
-			
-			if((crd[j]-crd[j+i]).len() < CONTACT_CUT)
-            {
-                cnts++;
-            }
-			
-			meanrs += (crd[j]-crd[j+i]).len();
-            meanrg +=GyrationRadius(j,i+j);
-            meanrg2w +=sqrt(GyrationRadius(j,i+j));
-			cnt++;
-			}
-        }
-        rs[i] += meanrs/(double)cnt;
-        rgs[i] += meanrg/(double)cnt;
-        conts[i] += cnts/(double)cnt;
-		rgwithout2s[i] += meanrg2w/(double)cnt;
-
-
-    }
-
-    rgcounter++;
-}
-
-
-void outputStats(FILE *ft)
-{
-    for(int i = 0; i < rgmax; i++)
-    {
-        if(rs[i]!=0)
-        {
-            fprintf(ft,"%i %f %f %f %f %f %f %f\n ", i,rs[i]/rgcounter,rgs[i]/rgcounter,conts[i]/rgcounter,log((double)i),log(rgs[i]/rgcounter),log((double)conts[i]/rgcounter),rgwithout2s[i]/rgcounter);
-
-
-        }
-    }
-    fprintf(ft,"\n");
-
-
-}
-
-/*
-void PrintDistMatrix(FILE* f)
-{
-//for homopolymer chains
-
-fprintf(f,"** ");
-for(int j = 0; j < C[ChNum].N; j++)
-{
-fprintf(f,"%i ", j);
-}
-fprintf(f,"\n");
-for(int i = 0; i < C[ChNum].N; i++)
-{
-	fprintf(f,"%i ",i);
-	for(int j = 0; j < C[ChNum].N; j++)
-	{
-		fprintf(f,"%f ", nearestImageR(C[ChNum].M[j], C[ChNum].M[i]));
-
-
-	}
-	fprintf(f,"\n");
-}
-
-
-
-
-}
-
-*/
-
-void UpdateContMatrix()
-{
-//for homopolymer chains
-
-for(int i = 0; i < N; i++)
-{
-
-	for(int j = 0; j < N; j++)
-	{
-		DistanceMatrix[i][j]+=(crd[i] - crd[j]).len();
-			
-		if( (crd[i] - crd[j]).len() < CONTACT_CUT && abs(i-j)>1)
-		{
-			
-			ContactMatrix[i][j]++;
-		//	if(debug) printf("FUUCCCCKK\n");
-			
-		}
-		/*
-		for(int k = 0; k < NContBins; k++)
-		{
-			if((crd[i] - crd[j]).len() < k*NContStep && abs(i-j)>1)
-			{
-				NContRadius[k] ++;
-				
-			}
-			
-		}
-		*/
-
-	}
-
-}
-
-DistanceMatrixNormer+=1;
-
-
-}
-
-
-
-void outputGradVrml(char* filename)
-{
-    #ifndef _WIN32
-char str[1000] = "cp vrml_header.txt ";
-strcat(str,filename);
-system(str);
-#endif
-
-#ifdef _WIN32
-char str[1000] = "copy vrml_header.txt ";
-strcat(str,filename);
-system(str);
-#endif
-
-//system("y");
-FILE *F = fopen(filename,"a");
-//printf("%lld",mAcc);
-//getch();
-
-for(int j = 0; j < N; j ++)
-{
-
-
-/*
-
-if(j == FIXED_POINT)
-{
-	 fprintf(F,"Transform { \n translation %f %f %f  children [ Shape {geometry Sphere {radius 2.0} \n appearance Appearance {material Material {diffuseColor %lf %lf %lf}}}]}\n",C[i].M[j].XReal.x[0],C[i].M[j].XReal.x[1],C[i].M[j].XReal.x[2], 1, 1, 1 );
-
-	
-}
-else if(C[i].M[j].Typ == 1)
-{
-
-    fprintf(F,"Transform { \n translation %f %f %f  children [ USE Ball1]}\n",C[i].M[j].XReal.x[0],C[i].M[j].XReal.x[1],C[i].M[j].XReal.x[2]);
-}
-else
-{
- */
- hsv color;
- color.h = ((double)j/(double)N)*360.0;
- color.s = 0.9;
- color.v = 0.8;
- rgb clrrgb = hsv2rgb(color);
- 
- 
- fprintf(F,"Transform { \n translation %f %f %f  children [ Shape {geometry Sphere {radius 0.5} \n appearance Appearance {material Material {diffuseColor %lf %lf %lf}}}]}\n",crd[j].x[0],crd[j].x[1],crd[j].x[2], clrrgb.r , clrrgb.g, clrrgb.b );
-}
-
-
-
-//}
-
-/*
-for(int y = 0; y < Nchains; y++)
-{
-fprintf(F,"Shape {appearance Appearance {material Material {emissiveColor 0 0 0}}geometry IndexedLineSet {coord Coordinate {point [");
-for(int a = 0; a < C[y].N;a++)
-{
-   /*if(C[y].M[a].rigid == true)
-    {
-    printf("1\n");
-    }
-    else
-    {
-    printf("0\n");
-    }
-    getch();
-    fprintf(F,"%f %f %f , \n",C[y].M[a].XReal.x[0],C[y].M[a].XReal.x[1],C[y].M[a].XReal.x[2]);
-}
-fprintf(F,"]}coordIndex [");
-for(int a = 0; a< C[y].N; a++)
-{
-for(int yy = 0; yy < C[y].M[a].NumBonds ; yy++)
-{
-
-
-fprintf(F,"%i,%i,-1\n",a,C[y].M[a].Bonds[yy]);
-}
-}
-fprintf(F,"]}}");
-
-*/
-
-
-
-/*
-fprintf(F,"Shape {appearance Appearance {material Material {emissiveColor 0 0 0}}geometry IndexedLineSet {coord Coordinate {point [");
-fprintf(F,"0 0 %f\n",SIZE[2]);
-fprintf(F,"0 %f %f \n",SIZE[1],SIZE[2]);
-fprintf(F,"0 %f 0\n",SIZE[1]);
-fprintf(F,"0 0 0\n");
-fprintf(F,"%f 0 0\n",SIZE[0]);
-fprintf(F,"%f 0 %f\n",SIZE[0],SIZE[2]);
-fprintf(F,"%f %f %f\n",SIZE[0],SIZE[1],SIZE[2]);
-fprintf(F,"%f %f 0\n",SIZE[0],SIZE[1]);
-fprintf(F,"]}coordIndex [");
-
-
-fprintf(F,"0,1,-1\n");
-fprintf(F,"1,2,-1\n");
-fprintf(F,"2,3,-1\n");
-fprintf(F,"0,3,-1\n");
-
-fprintf(F,"3,4,-1\n");
-fprintf(F,"1,6,-1\n");
-fprintf(F,"2,7,-1\n");
-fprintf(F,"0,5,-1\n");
-
-fprintf(F,"4,5,-1\n");
-fprintf(F,"5,6,-1\n");
-fprintf(F,"6,7,-1\n");
-fprintf(F,"7,4,-1\n");
-
-
-
-fprintf(F,"]}}");
-*/
-
-
-fclose(F);
-
-
-
-
-
-}
-
-
-void PrintDistanceMatrix()
-{
-	
-		FILE* f = fopen("DistanceMatrix.txt","w");
-	
-	for(int i = 0; i < N; i++)
-	{
-		
-		for(int j =0 ; j < N; j++)
-		{
-			
-			fprintf(f,"%lf ", DistanceMatrix[i][j]/DistanceMatrixNormer);
-			
-			
-		}
-		fprintf(f,"\n");
-	}
-	fclose(f);
-
-	
-	
-}
-
-void PrintDistanceMatrixAxis()
-{
-	
-		FILE* f = fopen("DistanceMatrixAxis.txt","w");
-	fprintf(f,"** ");
-	for(int j = 0; j < N; j++)
-	{
-	fprintf(f,"%i ", j);
-	}
-fprintf(f,"\n");
-	for(int i = 0; i < N; i++)
-	{
-		fprintf(f,"%i ",i);
-		for(int j =0 ; j < N; j++)
-		{
-			
-			fprintf(f,"%lf ", DistanceMatrix[i][j]/DistanceMatrixNormer);
-			
-			
-		}
-		fprintf(f,"\n");
-	}
-	fclose(f);
-
-	
-	
-}
-
-
-
-void PrintNCont()
-{
-	FILE* f = fopen("NContRadius.txt","w");
-	
-
-	for(int i = 0; i < NContBins; i++)
-	{
-		fprintf(f,"%lf %lf\n",NContStep*i, NContRadius[i]);
-	}
-	fclose(f);
-	
-	
-}
-
-void PrintContactMatrixAxis()
-{
-	FILE* f = fopen("ContactMatrixAxis.txt","w");
-	fprintf(f,"** ");
-	for(int j = 0; j < N; j++)
-	{
-	fprintf(f,"%i ", j);
-	}
-fprintf(f,"\n");
-	for(int i = 0; i < N; i++)
-	{
-		fprintf(f,"%i ",i);
-		for(int j =0 ; j < N; j++)
-		{
-			
-			fprintf(f,"%i ", ContactMatrix[i][j]);
-			
-			
-		}
-		fprintf(f,"\n");
-	}
-	fclose(f);
-
-}
-
-
-void PrintContactMatrix()
-{
-	FILE* f = fopen("ContactMatrix.txt","w");
-
-	for(int i = 0; i < N; i++)
-	{
-		
-		for(int j =0 ; j < N; j++)
-		{
-			
-			fprintf(f,"%i ", ContactMatrix[i][j]);
-			
-			
-		}
-		fprintf(f,"\n");
-	}
-	fclose(f);
-
-}
-
 
 
 
 Vector coor[1000000];
 Vector realCoor[1000000];
 Vector endtoend[500000];
-
-	double boxSize[3] = {40,40,40};
-	int lcLength = 7;
-	int nLC;
-	int nAtoms;
+double boxSize[3] = {40,40,40};
+int lcLength = 7;
+int nLC;
+int nAtoms;
 
 	
 	
